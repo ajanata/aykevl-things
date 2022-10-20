@@ -51,9 +51,10 @@ package hub75
 
 import (
 	"image/color"
+	"unsafe"
+
 	"machine"
 	"runtime/volatile"
-	"unsafe"
 )
 
 type Device struct {
@@ -97,6 +98,10 @@ func New(config Config) *Device {
 	}
 	if config.Brightness == 0 {
 		config.Brightness = 1 // default config (and minimum)
+	}
+	// underflows timer with brightness values above this
+	if config.Brightness > 0xAA {
+		config.Brightness = 0xAA
 	}
 	d := &Device{
 		a:          config.A,
@@ -166,6 +171,7 @@ func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
 
 // flush copies the data in the frame buffer to the output bit strings that can
 // be sent over SPI.
+//
 //go:nobounds
 func (d *Device) flush() {
 	for row := uint(0); row < 32; row++ {

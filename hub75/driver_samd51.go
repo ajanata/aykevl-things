@@ -1,13 +1,15 @@
+//go:build atsamd51
 // +build atsamd51
 
 package hub75
 
 import (
+	"unsafe"
+
 	"device/arm"
 	"device/sam"
 	"machine"
 	"runtime/volatile"
-	"unsafe"
 )
 
 const dmaDescriptors = 2
@@ -35,12 +37,12 @@ type dmaDescriptor struct {
 
 func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	d.dmaChannel = 0
-	d.bus = &machine.SPI0      // must be SERCOM1
+	d.bus = &machine.SPI9      // must be SERCOM1
 	const triggerSource = 0x07 // SERCOM1_DMAC_ID_TX
-	d.bus.Configure(machine.SPIConfig{
-		Frequency: 16000000,
-		Mode:      0,
-	})
+	// d.bus.Configure(machine.SPIConfig{
+	// 	Frequency: 16000000,
+	// 	Mode:      0,
+	// })
 
 	// Init DMAC.
 	// First configure the clocks, then configure the DMA descriptors. Those
@@ -85,15 +87,16 @@ func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	// Enable pin.
 	// d.oe == D7 == PA18
 	// PA18 is on TCC1 WO[2]
-	pwm := machine.TCC1
+	pwm := machine.TCC3
 	pwm.Configure(machine.PWMConfig{})
-	pwm.Channel(d.oe)
-	d.timer = sam.TCC1
-	d.timerChannel = &d.timer.CC[2]
+	ch, err := pwm.Channel(d.oe)
+	d.timer = sam.TCC3
+	d.timerChannel = &d.timer.CC[0]
+	println("timerChannel", d.timerChannel, "should be", ch, "err", err)
 
 	// Enable an interrupt on CC2 match.
-	d.timer.INTENSET.Set(sam.TCC_INTENSET_MC2)
-	arm.EnableIRQ(sam.IRQ_TCC1_MC2)
+	d.timer.INTENSET.Set(sam.TCC_INTENSET_MC0)
+	arm.EnableIRQ(sam.IRQ_TCC3_MC0)
 
 	// Set to one-shot and count down.
 	d.timer.CTRLBSET.SetBits(sam.TCC_CTRLBSET_ONESHOT | sam.TCC_CTRLBSET_DIR)
@@ -125,7 +128,9 @@ func (d *Device) startTransfer() {
 func (d *Device) startOutputEnableTimer() {
 	// Multiplying the brightness by 3 to be consistent with the nrf52 driver
 	// (48MHz vs 16MHz).
+	// Except using 3 here causes an underflow for the timer duration on near-max brightness
 	count := (d.brightness * 3) << d.colorBit
+	// count := d.brightness << d.colorBit
 	d.timerChannel.Set(0xffff - count)
 	for d.timer.SYNCBUSY.HasBits(sam.TCC_SYNCBUSY_CC0 | sam.TCC_SYNCBUSY_CC1 | sam.TCC_SYNCBUSY_CC2 | sam.TCC_SYNCBUSY_CC3) {
 	}
@@ -133,6 +138,7 @@ func (d *Device) startOutputEnableTimer() {
 }
 
 // SPI TXC interrupt is on interrupt line 1.
+//
 //export SERCOM1_1_IRQHandler
 func spiHandler() {
 	// Clear the interrupt flag.
@@ -141,10 +147,10 @@ func spiHandler() {
 	display.handleSPIEvent()
 }
 
-//export TCC1_MC2_IRQHandler
+//export TCC3_MC0_IRQHandler
 func tcc1Handler() {
 	// Clear the interrupt flag.
-	sam.TCC1.INTFLAG.Set(sam.TCC_INTFLAG_MC2)
+	sam.TCC3.INTFLAG.Set(sam.TCC_INTFLAG_MC0)
 
 	display.handleTimerEvent()
 }
