@@ -89,6 +89,7 @@ func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	// PA18 is on TCC1 WO[2]
 	pwm := machine.TCC3
 	pwm.Configure(machine.PWMConfig{})
+	pwm.Channel(d.oe)
 	d.timer = sam.TCC3
 	d.timerChannel = &d.timer.CC[0]
 
