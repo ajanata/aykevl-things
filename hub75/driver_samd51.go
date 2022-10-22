@@ -89,10 +89,8 @@ func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	// PA18 is on TCC1 WO[2]
 	pwm := machine.TCC3
 	pwm.Configure(machine.PWMConfig{})
-	ch, err := pwm.Channel(d.oe)
 	d.timer = sam.TCC3
 	d.timerChannel = &d.timer.CC[0]
-	println("timerChannel", d.timerChannel, "should be", ch, "err", err)
 
 	// Enable an interrupt on CC2 match.
 	d.timer.INTENSET.Set(sam.TCC_INTENSET_MC0)
