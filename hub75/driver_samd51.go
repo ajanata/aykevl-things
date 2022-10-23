@@ -37,8 +37,9 @@ type dmaDescriptor struct {
 
 func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	d.dmaChannel = 0
-	d.bus = &machine.SPI9      // must be SERCOM1
-	const triggerSource = 0x07 // SERCOM1_DMAC_ID_TX
+	d.bus = &machine.SPI9 // must be SERCOM1
+	// const triggerSource = 0x07 // SERCOM1_DMAC_ID_TX
+	const triggerSource = 0x0D // SERCOM4_DMAC_ID_TX
 	// d.bus.Configure(machine.SPIConfig{
 	// 	Frequency: 16000000,
 	// 	Mode:      0,
@@ -81,11 +82,12 @@ func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	// has been shifted out completely (but presumably after the DMAC has sent
 	// the last byte to the SPI peripheral).
 	d.bus.Bus.INTENSET.Set(sam.SERCOM_SPIM_INTENSET_TXC)
-	arm.EnableIRQ(sam.IRQ_SERCOM1_1)
+	// arm.EnableIRQ(sam.IRQ_SERCOM1_1)
+	arm.EnableIRQ(sam.IRQ_SERCOM4_1)
 
 	// Next up, configure the timer/counter used for precisely timing the Output
 	// Enable pin.
-	// d.oe == D7 == PA18
+	// d.oe == PB12
 	// PA18 is on TCC1 WO[2]
 	pwm := machine.TCC3
 	pwm.Configure(machine.PWMConfig{})
@@ -116,6 +118,7 @@ func (d *Device) startTransfer() {
 	// array instead of the address of the array.
 	descriptor := &dmaDescriptorSection[d.dmaChannel]
 	descriptor.srcaddr = unsafe.Pointer(uintptr(unsafe.Pointer(&bitstring[0])) + uintptr(len(bitstring)))
+	// descriptor.srcaddr = unsafe.Pointer(uintptr(unsafe.Pointer(&bitstring[0])))
 	descriptor.btcnt = uint16(len(bitstring)) // beat count
 
 	// Start the transfer.
@@ -136,9 +139,27 @@ func (d *Device) startOutputEnableTimer() {
 	d.timer.CTRLBSET.Set(sam.TCC_CTRLBSET_CMD_RETRIGGER << sam.TCC_CTRLBSET_CMD_Pos)
 }
 
+// // SPI TXC interrupt is on interrupt line 1.
+// //
+// //export SERCOM1_1_IRQHandler
+// func spiHandler() {
+// 	// Clear the interrupt flag.
+// 	display.bus.Bus.INTFLAG.Set(sam.SERCOM_SPIM_INTFLAG_TXC)
+//
+// 	display.handleSPIEvent()
+// }
+//
+// //export TCC3_MC0_IRQHandler
+// func tcc1Handler() {
+// 	// Clear the interrupt flag.
+// 	sam.TCC3.INTFLAG.Set(sam.TCC_INTFLAG_MC0)
+//
+// 	display.handleTimerEvent()
+// }
+
 // SPI TXC interrupt is on interrupt line 1.
 //
-//export SERCOM1_1_IRQHandler
+//export SERCOM4_1_IRQHandler
 func spiHandler() {
 	// Clear the interrupt flag.
 	display.bus.Bus.INTFLAG.Set(sam.SERCOM_SPIM_INTFLAG_TXC)
