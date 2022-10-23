@@ -15,10 +15,10 @@ import (
 const dmaDescriptors = 2
 
 //go:align 16
-var dmaDescriptorSection [dmaDescriptors]dmaDescriptor
+var DmaDescriptorSection [dmaDescriptors]DmaDescriptor
 
 //go:align 16
-var dmaDescriptorWritebackSection [dmaDescriptors]dmaDescriptor
+var DmaDescriptorWritebackSection [dmaDescriptors]DmaDescriptor
 
 type chipSpecificSettings struct {
 	bus          *machine.SPI
@@ -27,12 +27,12 @@ type chipSpecificSettings struct {
 	timerChannel *volatile.Register32
 }
 
-type dmaDescriptor struct {
-	btctrl   uint16
-	btcnt    uint16
-	srcaddr  unsafe.Pointer
-	dstaddr  unsafe.Pointer
-	descaddr unsafe.Pointer
+type DmaDescriptor struct {
+	Btctrl   uint16
+	Btcnt    uint16
+	Srcaddr  unsafe.Pointer
+	Dstaddr  unsafe.Pointer
+	Descaddr unsafe.Pointer
 }
 
 func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
@@ -51,21 +51,21 @@ func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
 	// http://www.lucadavidian.com/2018/03/08/wifi-controlled-neo-pixels-strips/
 	// https://svn.larosterna.com/oss/trunk/arduino/zerotimer/zerodma.cpp
 	sam.MCLK.AHBMASK.SetBits(sam.MCLK_AHBMASK_DMAC_)
-	sam.DMAC.BASEADDR.Set(uint32(uintptr(unsafe.Pointer(&dmaDescriptorSection))))
-	sam.DMAC.WRBADDR.Set(uint32(uintptr(unsafe.Pointer(&dmaDescriptorWritebackSection))))
+	sam.DMAC.BASEADDR.Set(uint32(uintptr(unsafe.Pointer(&DmaDescriptorSection))))
+	sam.DMAC.WRBADDR.Set(uint32(uintptr(unsafe.Pointer(&DmaDescriptorWritebackSection))))
 
 	// Enable peripheral with all priorities.
 	sam.DMAC.CTRL.SetBits(sam.DMAC_CTRL_DMAENABLE | sam.DMAC_CTRL_LVLEN0 | sam.DMAC_CTRL_LVLEN1 | sam.DMAC_CTRL_LVLEN2 | sam.DMAC_CTRL_LVLEN3)
 
 	// Configure channel descriptor.
-	dmaDescriptorSection[d.dmaChannel] = dmaDescriptor{
-		btctrl: (1 << 0) | // VALID: Descriptor Valid
+	DmaDescriptorSection[d.dmaChannel] = DmaDescriptor{
+		Btctrl: (1 << 0) | // VALID: Descriptor Valid
 			(0 << 3) | // BLOCKACT=NOACT: Block Action
 			(1 << 10) | // SRCINC: Source Address Increment Enable
 			(0 << 11) | // DSTINC: Destination Address Increment Enable
 			(1 << 12) | // STEPSEL=SRC: Step Selection
 			(0 << 13), // STEPSIZE=X1: Address Increment Step Size
-		dstaddr: unsafe.Pointer(&d.bus.Bus.DATA.Reg),
+		Dstaddr: unsafe.Pointer(&d.bus.Bus.DATA.Reg),
 	}
 
 	// Reset channel.
@@ -116,10 +116,10 @@ func (d *Device) startTransfer() {
 
 	// For some reason, you have to provide the address just past the end of the
 	// array instead of the address of the array.
-	descriptor := &dmaDescriptorSection[d.dmaChannel]
-	descriptor.srcaddr = unsafe.Pointer(uintptr(unsafe.Pointer(&bitstring[0])) + uintptr(len(bitstring)))
-	// descriptor.srcaddr = unsafe.Pointer(uintptr(unsafe.Pointer(&bitstring[0])))
-	descriptor.btcnt = uint16(len(bitstring)) // beat count
+	descriptor := &DmaDescriptorSection[d.dmaChannel]
+	descriptor.Srcaddr = unsafe.Pointer(uintptr(unsafe.Pointer(&bitstring[0])) + uintptr(len(bitstring)))
+	// descriptor.Srcaddr = unsafe.Pointer(uintptr(unsafe.Pointer(&bitstring[0])))
+	descriptor.Btcnt = uint16(len(bitstring)) // beat count
 
 	// Start the transfer.
 	sam.DMAC.CHANNEL[d.dmaChannel].CHCTRLA.SetBits(sam.DMAC_CHANNEL_CHCTRLA_ENABLE)
