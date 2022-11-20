@@ -13,7 +13,7 @@ import (
 type DeviceConfig struct {
 	// Bus is the SPI bus to use.
 	Bus *machine.SPI
-	// TriggerSource is the DMA IRQ trigger source, e.g. SERCOM4_DMAC_ID_TX = 0x0D. This must be for the sercom used for
+	// TriggerSource is the DMA trigger source, e.g. SERCOM4_DMAC_ID_TX = 0x0D. This must be for the sercom used for
 	// Bus.
 	TriggerSource uint32
 	// OETimerCounterControl is the TCC for the OE pin.
@@ -23,7 +23,9 @@ type DeviceConfig struct {
 	// TimerIntenset is the interrupt enable bit value of the timer channel that OE is on, e.g. sam.TCC_INTENSET_MC0.
 	// This must match TimerChannel.
 	TimerIntenset uint32
-	DMAChannel    uint8
+	// DMAChannel is the DMA channel to use.
+	DMAChannel uint8
+	// DMADescriptor is the descriptor for the specified DMA channel.
 	DMADescriptor *DmaDescriptor
 }
 
