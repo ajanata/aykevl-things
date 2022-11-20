@@ -1,3 +1,4 @@
+//go:build atsamd21
 // +build atsamd21
 
 package hub75
@@ -18,6 +19,8 @@ var dmaDescriptorSection [dmaDescriptors]dmaDescriptor
 //go:align 16
 var dmaDescriptorWritebackSection [dmaDescriptors]dmaDescriptor
 
+type DeviceConfig struct{}
+
 type chipSpecificSettings struct {
 	bus          *machine.SPI
 	dmaChannel   uint8
@@ -33,7 +36,7 @@ type dmaDescriptor struct {
 	descaddr unsafe.Pointer
 }
 
-func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
+func (d *Device) configureChip(dataPin, clockPin machine.Pin, _ DeviceConfig) {
 	d.dmaChannel = 0
 	d.bus = &machine.SPI0      // must be SERCOM0
 	const triggerSource = 0x02 // SERCOM0_DMAC_ID_TX

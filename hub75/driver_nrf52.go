@@ -1,3 +1,4 @@
+//go:build nrf52
 // +build nrf52
 
 package hub75
@@ -9,6 +10,8 @@ import (
 	"unsafe"
 )
 
+type DeviceConfig struct{}
+
 type chipSpecificSettings struct {
 	bus           *nrf.SPIM_Type
 	timer         *nrf.TIMER_Type
@@ -17,7 +20,7 @@ type chipSpecificSettings struct {
 	ppiChannel1   uint8 // PPI channel used to turn the screen off.
 }
 
-func (d *Device) configureChip(dataPin, clockPin machine.Pin) {
+func (d *Device) configureChip(dataPin, clockPin machine.Pin, _ DeviceConfig) {
 	// Set some properties that are chip-specific.
 	d.bus = nrf.SPIM0
 	d.timer = nrf.TIMER0

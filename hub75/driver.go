@@ -79,6 +79,8 @@ type Device struct {
 
 // Config contains the configuration for a given hub75 instance.
 type Config struct {
+	DeviceConfig
+
 	Data         machine.Pin // SPI TX
 	Clock        machine.Pin // SPI CLK
 	Latch        machine.Pin // also called strobe
@@ -99,7 +101,7 @@ func New(config Config) *Device {
 	if config.Brightness == 0 {
 		config.Brightness = 1 // default config (and minimum)
 	}
-	// underflows timer with brightness values above this
+	// underflows timer with brightness values above this (on samd51 at least)
 	if config.Brightness > 0xAA {
 		config.Brightness = 0xAA
 	}
@@ -147,7 +149,7 @@ func New(config Config) *Device {
 	d.d.Low()
 	d.lat.High()
 
-	d.configureChip(config.Data, config.Clock)
+	d.configureChip(config.Data, config.Clock, config.DeviceConfig)
 
 	return d
 }
