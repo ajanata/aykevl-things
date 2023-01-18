@@ -86,7 +86,7 @@ func (d *Device) configureChip(_, _ machine.Pin, config DeviceConfig) {
 	d.timerChannel = &d.timer.CC[config.TimerChannel]
 	d.timerIntenset = config.TimerIntenset
 
-	// Enable an interrupt on CC2 match.
+	// Enable an interrupt on CC match.
 	d.timer.INTENSET.Set(config.TimerIntenset)
 
 	// Set to one-shot and count down.
@@ -123,6 +123,20 @@ func (d *Device) startOutputEnableTimer() {
 	for d.timer.SYNCBUSY.HasBits(sam.TCC_SYNCBUSY_CC0 | sam.TCC_SYNCBUSY_CC1 | sam.TCC_SYNCBUSY_CC2 | sam.TCC_SYNCBUSY_CC3) {
 	}
 	d.timer.CTRLBSET.Set(sam.TCC_CTRLBSET_CMD_RETRIGGER << sam.TCC_CTRLBSET_CMD_Pos)
+}
+
+func (d *Device) SetBrightness(b uint32) {
+	if b > 0xAA {
+		b = 0xAA
+	}
+	if b == 0 {
+		b = 1
+	}
+	d.brightness = b
+}
+
+func (d *Device) Brightness() uint32 {
+	return d.brightness
 }
 
 // SPIHandler is the SPI interrupt handler. You must call
